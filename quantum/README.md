@@ -9,6 +9,8 @@ Contents:
 
 - `scripts/qm_rescore_xtb.py`
   Rescores exported docking candidates with `GFN-xTB` and writes `xtb_rescored.csv`.
+- `scripts/run_xtb_rescore_wsl.ps1`
+  Windows helper that forwards a candidate directory into WSL and runs `qm_rescore_xtb.py`.
 - `scripts/quantum_h2_vqe_demo.py`
   Legacy local H2 VQE demo.
 - `scripts/generate_two_track_proof_pdf.py`
@@ -24,6 +26,8 @@ Current recommended workflow:
    `<output_dir>/qm_candidates/<pdb_id>/seed_<seed>/`
 3. Run xTB rescoring:
    `python quantum/scripts/qm_rescore_xtb.py --input <candidate_dir> --xtb_bin xtb`
+   or on Windows:
+   `powershell -ExecutionPolicy Bypass -File quantum/scripts/run_xtb_rescore_wsl.ps1 -InputPath <candidate_dir>`
 4. Inspect:
    - `candidate_metadata.csv`
    - `candidate_topk.csv`
