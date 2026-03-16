@@ -113,6 +113,9 @@ def run_single_target(pdb_id, device_id, seed, args):
         adaptive_patience_frac=getattr(args, "adaptive_patience_frac", 0.12),
         rerank_polish_mult=getattr(args, "rerank_polish_mult", 2),
         selection_score=getattr(args, "selection_score", "clash"),
+        search_rescue_min_step_frac=getattr(args, "search_rescue_min_step_frac", 0.35),
+        search_rescue_patience_frac=getattr(args, "search_rescue_patience_frac", 0.08),
+        search_rescue_scale=getattr(args, "search_rescue_scale", 2.5),
         dump_candidate_topk=getattr(args, "dump_candidate_topk", 0),
         artifact_dir=getattr(args, "output_dir", ""),
         quiet=getattr(args, "quiet", False),
@@ -201,6 +204,12 @@ def main():
     parser.add_argument("--selection_score", type=str, default="clash",
                         choices=["hybrid", "logz", "energy", "clash", "energy_clash"],
                         help="Score used to select the final pose from refined particles")
+    parser.add_argument("--search_rescue_min_step_frac", type=float, default=0.35,
+                        help="Minimum completed-step fraction before hard-target search rescue can trigger")
+    parser.add_argument("--search_rescue_patience_frac", type=float, default=0.08,
+                        help="No-improvement patience fraction required before search rescue can trigger")
+    parser.add_argument("--search_rescue_scale", type=float, default=2.5,
+                        help="Strength of the stagnation-triggered search rescue move")
     parser.add_argument("--dump_candidate_topk", type=int, default=0,
                         help="If >0, dump top-k candidate poses and metadata for downstream rescoring")
     parser.add_argument("--quiet", action="store_true",
@@ -250,6 +259,19 @@ def main():
     if args.rerank_polish_mult < 1:
         logger.warning(f"rerank_polish_mult={args.rerank_polish_mult} invalid; clamping to 1.")
         args.rerank_polish_mult = 1
+    if args.search_rescue_min_step_frac < 0.1 or args.search_rescue_min_step_frac > 0.95:
+        logger.warning(
+            f"search_rescue_min_step_frac={args.search_rescue_min_step_frac} out of range; clamping to [0.1,0.95]."
+        )
+        args.search_rescue_min_step_frac = min(0.95, max(0.1, args.search_rescue_min_step_frac))
+    if args.search_rescue_patience_frac < 0.02 or args.search_rescue_patience_frac > 0.5:
+        logger.warning(
+            f"search_rescue_patience_frac={args.search_rescue_patience_frac} out of range; clamping to [0.02,0.5]."
+        )
+        args.search_rescue_patience_frac = min(0.5, max(0.02, args.search_rescue_patience_frac))
+    if args.search_rescue_scale < 0.0:
+        logger.warning(f"search_rescue_scale={args.search_rescue_scale} invalid; clamping to 0.0.")
+        args.search_rescue_scale = 0.0
     if args.dump_candidate_topk < 0:
         logger.warning(f"dump_candidate_topk={args.dump_candidate_topk} invalid; clamping to 0.")
         args.dump_candidate_topk = 0

@@ -65,6 +65,12 @@ def main():
     parser.add_argument("--selection_score", type=str, default="clash",
                         choices=["hybrid", "logz", "energy", "clash", "energy_clash"],
                         help="Score used to select the final pose from refined particles")
+    parser.add_argument("--search_rescue_min_step_frac", type=float, default=0.35,
+                        help="Minimum step fraction before hard-target search rescue can trigger")
+    parser.add_argument("--search_rescue_patience_frac", type=float, default=0.08,
+                        help="Patience fraction before search rescue can trigger")
+    parser.add_argument("--search_rescue_scale", type=float, default=2.5,
+                        help="Strength of the stagnation-triggered search rescue move")
     parser.add_argument("--dump_candidate_topk", type=int, default=0,
                         help="If >0, dump top-k candidate poses and metadata for downstream rescoring")
     parser.add_argument("--quiet", action="store_true",
@@ -110,6 +116,12 @@ def main():
         str(args.rerank_polish_mult),
         "--selection_score",
         str(args.selection_score),
+        "--search_rescue_min_step_frac",
+        str(args.search_rescue_min_step_frac),
+        "--search_rescue_patience_frac",
+        str(args.search_rescue_patience_frac),
+        "--search_rescue_scale",
+        str(args.search_rescue_scale),
         "--dump_candidate_topk",
         str(args.dump_candidate_topk),
     ]

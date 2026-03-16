@@ -70,6 +70,9 @@ class SimulationConfig:
     adaptive_patience_frac: float = 0.12
     rerank_polish_mult: int = 2
     selection_score: str = "clash"
+    search_rescue_min_step_frac: float = 0.35
+    search_rescue_patience_frac: float = 0.08
+    search_rescue_scale: float = 2.5
     dump_candidate_topk: int = 0
     artifact_dir: str = ""
     quiet: bool = False

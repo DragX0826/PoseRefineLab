@@ -91,6 +91,54 @@ def directed_noise(shape, pocket_anchor, f_phys, T_curr, dt, step_frac, pos_L, d
     return directed
 
 
+def stagnation_search_rescue(
+    particles: torch.Tensor,
+    energies: torch.Tensor,
+    pocket_anchor: torch.Tensor,
+    rescue_scale: float,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Replace weak particles with perturbed elite copies when search stalls.
+
+    This is intentionally coarse: the goal is to reopen exploration on
+    hard targets where the current population has collapsed into a bad basin.
+    """
+    B = particles.shape[0]
+    if B < 4 or rescue_scale <= 0.0:
+        return particles, torch.empty(0, dtype=torch.long, device=particles.device)
+
+    elite_k = max(1, B // 4)
+    weak_k = max(1, B // 3)
+    ranked = energies.argsort()
+    elite_idx = ranked[:elite_k]
+    weak_idx = ranked[-weak_k:]
+
+    elite = particles[elite_idx].detach().clone()
+    center = elite.mean(dim=0, keepdim=True)
+    local_sigma = float(elite.std(dim=0, unbiased=False).mean().clamp(0.15, 1.50).item())
+    if not math.isfinite(local_sigma):
+        local_sigma = 0.35
+
+    for out_idx, weak_particle_idx in enumerate(weak_idx):
+        src = elite[out_idx % elite.shape[0]]
+        src_centroid = src.mean(dim=0, keepdim=True)
+        to_pocket = F.normalize(
+            pocket_anchor.view(1, 3) - src_centroid,
+            dim=-1,
+            eps=1e-8,
+        ).view(1, 1, 3)
+        rigid_sigma = rescue_scale * local_sigma
+        rigid_shift = (
+            torch.randn((1, 1, 3), device=particles.device) * (0.60 * rigid_sigma) +
+            to_pocket * (0.75 * rigid_sigma)
+        )
+        atom_sigma = max(0.08, 0.20 * rigid_sigma)
+        atom_noise = torch.randn_like(src) * atom_sigma
+        particles[weak_particle_idx] = src + rigid_shift + atom_noise + 0.10 * (center[0] - src)
+
+    return particles, weak_idx
+
+
 def _stable_zscore(values: torch.Tensor) -> torch.Tensor:
     """Numerically stable z-score used by ranking heuristics."""
     if values.numel() <= 1:
@@ -1153,6 +1201,15 @@ class SAEBFlowRefinement:
         min_adaptive_stop_step = min(steps - 1, max(80, int(min_step_frac * steps)))
         adaptive_patience = max(20, int(patience_frac * steps))
         plateau_window = max(20, int(0.10 * steps))
+        rescue_min_frac = float(getattr(self.config, "search_rescue_min_step_frac", 0.35))
+        rescue_patience_frac = float(getattr(self.config, "search_rescue_patience_frac", 0.08))
+        rescue_scale = float(getattr(self.config, "search_rescue_scale", 2.5))
+        min_search_rescue_step = min(steps - 1, max(40, int(rescue_min_frac * steps)))
+        search_rescue_patience = max(15, int(rescue_patience_frac * steps))
+        search_rescue_cooldown = max(30, int(0.08 * steps))
+        search_rescue_max_count = 2
+        last_search_rescue_step = -search_rescue_cooldown
+        search_rescue_count = 0
         best_avg_energy = float("inf")
         best_energy_step = 0
 
@@ -1270,6 +1327,7 @@ class SAEBFlowRefinement:
             if avg_e + adaptive_stop_thresh < best_avg_energy:
                 best_avg_energy = avg_e
                 best_energy_step = step
+            stalled_steps = step - best_energy_step
             
             # Adaptive stop v11: require long plateau + patience to avoid premature convergence.
             if step >= min_adaptive_stop_step and len(history_E) >= plateau_window:
@@ -1278,12 +1336,19 @@ class SAEBFlowRefinement:
                 imp_short = abs(float(recent[-1] - recent[-1 - lookback]))
                 imp_long = abs(float(recent[-1] - recent[0]))
                 rel_std = float(recent.std() / max(1.0, abs(float(recent.mean()))))
-                stalled_steps = step - best_energy_step
+                rescue_pending = (
+                    rescue_scale > 0.0 and
+                    step >= min_search_rescue_step and
+                    search_rescue_count < search_rescue_max_count and
+                    stalled_steps >= search_rescue_patience and
+                    (step - last_search_rescue_step) >= search_rescue_cooldown
+                )
                 if (
                     imp_short < adaptive_stop_thresh and
                     imp_long < (2.5 * adaptive_stop_thresh) and
                     rel_std < 0.01 and
-                    stalled_steps >= adaptive_patience
+                    stalled_steps >= adaptive_patience and
+                    not rescue_pending
                 ):
                     logger.info(
                         f"  [Refine] Adaptive stop at step {step} "
@@ -1304,6 +1369,36 @@ class SAEBFlowRefinement:
                         f"Centroid→Anchor: {c2a.min():.2f}Å(best) {c2a.mean():.2f}Å(mean) | "
                         f"E_min: {energy_clamped.min():.1f}"
                     )
+
+            # Hard-target search rescue: when progress stalls, repopulate weak particles
+            # from elite poses with a much broader pocket-directed perturbation.
+            if (
+                rescue_scale > 0.0 and
+                step >= min_search_rescue_step and
+                search_rescue_count < search_rescue_max_count and
+                stalled_steps >= search_rescue_patience and
+                (step - last_search_rescue_step) >= search_rescue_cooldown
+            ):
+                with torch.no_grad():
+                    pos_L.data, rescued_idx = stagnation_search_rescue(
+                        pos_L.data,
+                        energy_clamped.detach(),
+                        pocket_anchor,
+                        rescue_scale=rescue_scale,
+                    )
+                    if rescued_idx.numel() > 0:
+                        if log_weights is not None and log_weights.numel() == B:
+                            log_weights[rescued_idx] = log_weights.mean()
+                        search_rescue_count += 1
+                        last_search_rescue_step = step
+                        logger.info(
+                            "  [Refine] Search rescue at step %d: refreshed %d weak particles "
+                            "(stalled=%d, scale=%.2f)",
+                            step,
+                            int(rescued_idx.numel()),
+                            stalled_steps,
+                            rescue_scale,
+                        )
             
             # Diversity maintenance: FK-SMC or PRM Replica Exchange
             if step > 20 and step % 30 == 0:
