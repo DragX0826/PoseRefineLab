@@ -106,19 +106,23 @@ def _diversified_etkdg_pose(
     base_pos: torch.Tensor,
     pocket_anchor: torch.Tensor,
     batch_idx: int,
+    protein_pos: torch.Tensor | None = None,
 ) -> torch.Tensor:
     """
-    Diversify initial coverage with three pose families:
+    Diversify initial coverage with multiple pose families:
     1) pocket-centered local starts,
     2) radial-shell starts,
-    3) strongly rotated/oriented starts.
+    3) strongly rotated/oriented starts,
+    4) pocket-surface starts anchored near nearby receptor atoms.
     """
     centered = base_pos - base_pos.mean(dim=0, keepdim=True)
     rot = _random_rotation_matrix(base_pos.device, base_pos.dtype)
     rotated = centered @ rot.T
 
-    mode = batch_idx % 3
-    shell_id = batch_idx // 3
+    has_surface_mode = protein_pos is not None and protein_pos.numel() > 0
+    mode_count = 4 if has_surface_mode else 3
+    mode = batch_idx % mode_count
+    shell_id = batch_idx // mode_count
 
     direction = F.normalize(torch.randn(3, device=base_pos.device, dtype=base_pos.dtype), dim=0, eps=1e-8)
     tangent = F.normalize(torch.randn(3, device=base_pos.device, dtype=base_pos.dtype), dim=0, eps=1e-8)
@@ -132,11 +136,28 @@ def _diversified_etkdg_pose(
         radius = 2.0 + 0.9 * (shell_id % 4)
         offset = direction * radius + tangent * (0.4 * radius)
         atom_noise = torch.randn_like(rotated) * 0.35
-    else:
+    elif mode == 2:
         # Orientation-bank starts emphasize rigid-body diversity over local noise.
         radius = 3.5 + 1.1 * (shell_id % 4)
         offset = direction * radius + tangent * (0.75 + 0.2 * (shell_id % 3))
         atom_noise = torch.randn_like(rotated) * 0.12
+    else:
+        # Pocket-surface starts place the ligand near different local receptor patches.
+        rel = protein_pos - pocket_anchor.unsqueeze(0)
+        dist = rel.norm(dim=-1)
+        nearby_mask = dist <= 8.0
+        nearby = protein_pos[nearby_mask]
+        if nearby.shape[0] == 0:
+            nearby = protein_pos
+        anchor_idx = (3 * shell_id + batch_idx) % nearby.shape[0]
+        surface_atom = nearby[anchor_idx]
+        surface_vec = surface_atom - pocket_anchor
+        if surface_vec.norm().item() < 1e-6:
+            surface_vec = direction
+        surface_dir = F.normalize(surface_vec, dim=0, eps=1e-8)
+        stand_off = 2.4 + 0.45 * (shell_id % 4)
+        offset = (surface_atom - pocket_anchor) + surface_dir * stand_off
+        atom_noise = torch.randn_like(rotated) * 0.10
 
     return rotated + pocket_anchor.unsqueeze(0) + offset.unsqueeze(0) + atom_noise
 
@@ -1170,7 +1191,12 @@ class SAEBFlowRefinement:
                         etkdg_pos = conf_pos[heavy_idx]
                         if etkdg_pos.shape[0] != N:
                             continue
-                        pos_L.data[b] = _diversified_etkdg_pose(etkdg_pos, pocket_anchor, b)
+                        pos_L.data[b] = _diversified_etkdg_pose(
+                            etkdg_pos,
+                            pocket_anchor,
+                            b,
+                            protein_pos=pos_P.to(device),
+                        )
                         logger.debug(f"  [Refine] ETKDG init for batch {b}")
             except Exception as e:
                 logger.debug(f"  [Refine] ETKDG init failed: {e} — using original init")
