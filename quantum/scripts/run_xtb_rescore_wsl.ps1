@@ -18,12 +18,22 @@ $ErrorActionPreference = "Stop"
 $repoWindows = (Resolve-Path (Join-Path $PSScriptRoot "..\\..")).Path
 $inputWindows = (Resolve-Path $InputPath).Path
 
-$repoWsl = (wsl -d $Distro wslpath -a "$repoWindows").Trim()
-$inputWsl = (wsl -d $Distro wslpath -a "$inputWindows").Trim()
+function Convert-ToWslPath {
+    param([Parameter(Mandatory = $true)][string]$WindowsPath)
+    $normalized = $WindowsPath -replace '\\', '/'
+    if ($normalized -match '^([A-Za-z]):/(.*)$') {
+        $drive = $matches[1].ToLower()
+        $rest = $matches[2]
+        return "/mnt/$drive/$rest"
+    }
+    throw "Unsupported Windows path: $WindowsPath"
+}
+
+$repoWsl = Convert-ToWslPath -WindowsPath $repoWindows
+$inputWsl = Convert-ToWslPath -WindowsPath $inputWindows
 
 $cmdParts = @(
-    "cd '$repoWsl'",
-    "python3 quantum/scripts/qm_rescore_xtb.py",
+    "cd '$repoWsl' && python3 quantum/scripts/qm_rescore_xtb.py",
     "--input '$inputWsl'",
     "--xtb_bin '$XtbBin'",
     "--charge $Charge",

@@ -51,6 +51,8 @@ def _write_xyz_from_sdf(sdf_path: Path, xyz_path: Path):
     if not mols:
         raise ValueError(f"Failed to read SDF: {sdf_path}")
     mol = mols[0]
+    if mol.GetNumAtoms() == mol.GetNumHeavyAtoms():
+        mol = Chem.AddHs(mol, addCoords=True)
     conf = mol.GetConformer()
     lines = [str(mol.GetNumAtoms()), sdf_path.stem]
     for atom_idx, atom in enumerate(mol.GetAtoms()):
