@@ -6,9 +6,9 @@ import numpy as np
 import pandas as pd
 
 
-ROOT = Path("deliverables/workshop_evidence")
-DOCKING_DIR = ROOT / "docking_project"
-QM_DIR = ROOT / "quantum_project"
+ROOT = Path("reports")
+DOCKING_DIR = ROOT / "docking"
+QM_DIR = ROOT / "quantum"
 FINAL_RESULTS = Path("results/results")
 QM_RESULTS = Path("quantum/qm_negative_result_package")
 
@@ -194,8 +194,8 @@ def build_docking_package() -> None:
     fig.savefig(DOCKING_DIR / "per_seed_median_rmsd.png", bbox_inches="tight")
     plt.close(fig)
 
-    (DOCKING_DIR / "proof_document.md").write_text(
-        "# Docking Project Proof Document\n\n"
+    (DOCKING_DIR / "report.md").write_text(
+        "# Docking Report\n\n"
         "## Scope\n"
         "Astex-9 final comparison between `fksmc_socm_final` and `socm_final` using the stable mainline with MMFF auto-disable protection.\n\n"
         "## Key result\n"
@@ -210,7 +210,7 @@ def build_docking_package() -> None:
         f"- After removing search-limited targets, FK-SMC+SOCM mean selected RMSD = {non_search_summary.loc[non_search_summary['method']=='fksmc_socm_final', 'mean_selected_rmsd'].iloc[0]:.3f} Å.\n"
         f"- After removing search-limited targets, SOCM mean selected RMSD = {non_search_summary.loc[non_search_summary['method']=='socm_final', 'mean_selected_rmsd'].iloc[0]:.3f} Å.\n"
         "This filtered view is useful because search-limited targets are effectively insensitive to reranking and can dilute method differences.\n\n"
-        "## Included evidence\n"
+        "## Included files\n"
         "- `stability_comparison.png`\n"
         "- `gap_audit_targets.png`\n"
         "- `summary_metrics.png`\n"
@@ -269,8 +269,8 @@ def build_qm_package() -> None:
     fig.savefig(QM_DIR / "qm_delta_vs_selected.png", bbox_inches="tight")
     plt.close(fig)
 
-    (QM_DIR / "proof_document.md").write_text(
-        "# Quantum Project Proof Document\n\n"
+    (QM_DIR / "report.md").write_text(
+        "# Quantum Report\n\n"
         "## Scope\n"
         "QM-informed rescoring prototype using xTB on exported docking candidates. Both ligand-only and pocket-cluster complex modes were tested.\n\n"
         "## Study scale\n"
@@ -285,7 +285,7 @@ def build_qm_package() -> None:
         f"- `1gpk`: selected {qm_df.loc[qm_df['pdb_id']=='1gpk','selected_rmsd'].iloc[0]:.3f} Å vs oracle {qm_df.loc[qm_df['pdb_id']=='1gpk','oracle_best_rmsd'].iloc[0]:.3f} Å; only {qm_df.loc[qm_df['pdb_id']=='1gpk','selected_rmsd'].iloc[0] - qm_df.loc[qm_df['pdb_id']=='1gpk','oracle_best_rmsd'].iloc[0]:.3f} Å gap.\n"
         f"- `1b8o`: selected {qm_df.loc[qm_df['pdb_id']=='1b8o','selected_rmsd'].iloc[0]:.3f} Å vs oracle {qm_df.loc[qm_df['pdb_id']=='1b8o','oracle_best_rmsd'].iloc[0]:.3f} Å; only {qm_df.loc[qm_df['pdb_id']=='1b8o','selected_rmsd'].iloc[0] - qm_df.loc[qm_df['pdb_id']=='1b8o','oracle_best_rmsd'].iloc[0]:.3f} Å gap.\n"
         "This limited baseline-to-oracle gap already constrains how much any rescoring method could improve the final ranking on these two examples.\n\n"
-        "## Included evidence\n"
+        "## Included files\n"
         "- `qm_negative_result_rmsd.png`\n"
         "- `qm_rmsd_comparison.png`\n"
         "- `qm_delta_vs_selected.png`\n"
@@ -299,12 +299,12 @@ def main() -> None:
     build_docking_package()
     build_qm_package()
     (ROOT / "README.md").write_text(
-        "# Workshop Evidence Packages\n\n"
-        "- `docking_project/`: docking figures, core tables, and proof document.\n"
-        "- `quantum_project/`: QM negative-result figures, summary table, and proof document.\n",
+        "# Reports\n\n"
+        "- `docking/`: docking figures, core tables, and report.\n"
+        "- `quantum/`: QM negative-result figures, summary table, and report.\n",
         encoding="utf-8",
     )
-    print(f"Updated evidence packages under: {ROOT.resolve()}")
+    print(f"Updated report packages under: {ROOT.resolve()}")
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 
 ## Mainline conclusion
 
-The current SAEB/MaxFlow prototype is stable enough to evaluate, but it does not yet support a strong "overall better than baseline" claim.
+The current PoseRefineLab prototype is stable enough to evaluate, but it does not yet support a strong "overall better than baseline" claim.
 
 - `crash_rate` is effectively zero on the recent Astex runs.
 - `selection_score=clash` is the most defensible default for current mainline runs.

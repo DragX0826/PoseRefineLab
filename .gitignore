@@ -1,4 +1,4 @@
-# MaxFlow - GitHub Ignore Pattern
+# PoseRefineLab - GitHub Ignore Pattern
 # ---
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -44,11 +44,8 @@ quantum/outputs/
 *.log
 *.zip
 results/
-deliverables/*.zip
-
-!deliverables/
-!deliverables/workshop_evidence/
-!deliverables/workshop_evidence/**
+!reports/
+!reports/**
 
 # VS Code / IDE
 .vscode/

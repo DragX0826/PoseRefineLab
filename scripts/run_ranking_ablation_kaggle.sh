@@ -4,9 +4,9 @@ export PYTHONUNBUFFERED=1
 export PYTHONWARNINGS="ignore:invalid value encountered in divide:RuntimeWarning"
 
 cd /kaggle/working
-rm -rf MaxFlow
-git clone https://github.com/DragX0826/MaxFlow.git
-cd MaxFlow
+rm -rf PoseRefineLab
+git clone https://github.com/DragX0826/PoseRefineLab.git
+cd PoseRefineLab
 git checkout 53c7c1d
 
 pip install -q posebusters biopython fair-esm

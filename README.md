@@ -1,26 +1,26 @@
-# MaxFlow
+# PoseRefineLab
 
-MaxFlow is the working repository for our AI docking / pose-refinement project and its associated QM negative-result study.
+PoseRefineLab is the working repository for our docking and pose-refinement project together with a small QM negative-result study.
 
-This repository is now organized around the code that is still relevant, the final evidence packages, and the scripts required to regenerate them.
+The repository is organized around the code that is still relevant, the current report packages, and the scripts required to regenerate them.
 
 ## What This Repo Contains
 
 - `src/`
-  - main SAEB/MaxFlow implementation
+  - main SAEB/PoseRefineLab implementation
   - refinement, scoring, MMFF safeguards, and benchmark logic
 - `scripts/`
   - benchmark utilities
   - audit scripts
-  - `build_workshop_evidence.py` to rebuild the final evidence packages
+  - `build_reports.py` to rebuild the shared report packages
 - `docs/`
   - current project status and technical notes
-- `deliverables/workshop_evidence/`
-  - final proof documents, figures, and core tables for:
-    - docking project
-    - QM negative-result project
+- `reports/`
+  - final report packages for:
+    - docking
+    - quantum
 - `quantum/`
-  - QM/xTB-related scripts and lightweight notes used to build the negative-result package
+  - QM/xTB-related scripts and lightweight notes used to build the QM report package
 
 ## Current Project Position
 
@@ -38,33 +38,33 @@ The QM line is kept as a documented pilot negative result:
 - the xTB rescoring workflow works end-to-end
 - but ligand-only and pocket-cluster rescoring did not improve pose ranking on the tested cases
 
-## Key Deliverables
+## Key Reports
 
-Docking evidence package:
+Docking package:
 
-- `deliverables/workshop_evidence/docking_project/proof_document.md`
-- `deliverables/workshop_evidence/docking_project/stability_comparison.png`
-- `deliverables/workshop_evidence/docking_project/gap_audit_targets.png`
-- `deliverables/workshop_evidence/docking_project/summary_metrics.png`
+- `reports/docking/report.md`
+- `reports/docking/stability_comparison.png`
+- `reports/docking/gap_audit_targets.png`
+- `reports/docking/summary_metrics.png`
 
-Quantum evidence package:
+Quantum package:
 
-- `deliverables/workshop_evidence/quantum_project/proof_document.md`
-- `deliverables/workshop_evidence/quantum_project/qm_rmsd_comparison.png`
-- `deliverables/workshop_evidence/quantum_project/qm_delta_vs_selected.png`
+- `reports/quantum/report.md`
+- `reports/quantum/qm_rmsd_comparison.png`
+- `reports/quantum/qm_delta_vs_selected.png`
 
-## Rebuilding The Evidence Packages
+## Rebuilding The Reports
 
 From the repository root:
 
 ```bash
-python scripts/build_workshop_evidence.py
+python scripts/build_reports.py
 ```
 
 This regenerates:
 
-- `deliverables/workshop_evidence/docking_project/`
-- `deliverables/workshop_evidence/quantum_project/`
+- `reports/docking/`
+- `reports/quantum/`
 
 from the retained final CSV inputs and QM summary files.
 
@@ -91,4 +91,4 @@ python scripts/search_selection_gap_audit.py --help
 ## Notes
 
 - Intermediate Kaggle outputs, experimental scratch results, archives, and legacy submission folders are intentionally excluded from GitHub.
-- The repository is meant to present the current working code and the final evidence package, not every historical artifact.
+- The repository is meant to present the current working code and the current report packages, not every historical artifact.

@@ -1,4 +1,4 @@
-# Docking Project Proof Document
+# Docking Report
 
 ## Scope
 Astex-9 final comparison between `fksmc_socm_final` and `socm_final` using the stable mainline with MMFF auto-disable protection.
@@ -18,7 +18,7 @@ These per-seed values explain why SOCM has slightly better aggregate accuracy bu
 - After removing search-limited targets, SOCM mean selected RMSD = 2.669 Å.
 This filtered view is useful because search-limited targets are effectively insensitive to reranking and can dilute method differences.
 
-## Included evidence
+## Included files
 - `stability_comparison.png`
 - `gap_audit_targets.png`
 - `summary_metrics.png`

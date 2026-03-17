@@ -20,4 +20,4 @@ This directory contains the runnable docking code, benchmark entry points, and t
 ## Notes
 
 - Root-level experiment logs and scratch outputs are intentionally excluded from version control.
-- Benchmark evidence intended for sharing lives under `deliverables/workshop_evidence/` at the repository root.
+- Benchmark evidence intended for sharing lives under `reports/` at the repository root.

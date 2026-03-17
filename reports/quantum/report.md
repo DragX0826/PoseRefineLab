@@ -1,4 +1,4 @@
-# Quantum Project Proof Document
+# Quantum Report
 
 ## Scope
 QM-informed rescoring prototype using xTB on exported docking candidates. Both ligand-only and pocket-cluster complex modes were tested.
@@ -19,7 +19,7 @@ So the identical RMSD values reflect the same final recommended index, not a fai
 - `1b8o`: selected 2.533 Å vs oracle 2.179 Å; only 0.354 Å gap.
 This limited baseline-to-oracle gap already constrains how much any rescoring method could improve the final ranking on these two examples.
 
-## Included evidence
+## Included files
 - `qm_negative_result_rmsd.png`
 - `qm_rmsd_comparison.png`
 - `qm_delta_vs_selected.png`

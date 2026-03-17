@@ -1,5 +1,5 @@
 """
-SAEB-Flow FK-SMC+SOCM — Kaggle T4x2 Paper Benchmark (Speed-Optimized v11.0)
+PoseRefineLab FK-SMC+SOCM — Kaggle T4x2 benchmark helper
 =============================================================================
 Optimizations applied:
   Speed-1: ESM embedding disk cache → saves 10-20s per (target × seed) on repeat runs
@@ -37,7 +37,7 @@ print(f"\nESM cache dir:    {_cache_dir}  ({n_cached} entries)")
 
 # ── Cell 2: Setup ─────────────────────────────────────────────────────────────
 # Adjust REPO_ROOT if you imported repo as dataset with a different name
-REPO_ROOT = "/kaggle/input/maxflow/MaxFlow"
+REPO_ROOT = "/kaggle/input/poserefinelab/PoseRefineLab"
 SRC_DIR   = f"{REPO_ROOT}/src"
 OUT_ROOT  = "/kaggle/working/results"
 os.makedirs(OUT_ROOT, exist_ok=True)
