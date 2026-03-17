@@ -1,4 +1,4 @@
-# Current Status (2026-03-16)
+# Current Status
 
 ## Mainline conclusion
 

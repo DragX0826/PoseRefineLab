@@ -5,4 +5,3 @@ from .physics.engine import PhysicsEngine
 from .reporting.visualizer import PublicationVisualizer
 
 __version__ = "2.0.0"
-__author__ = "SAEB-Flow Team"

@@ -170,7 +170,7 @@ def integrate_innovations(config, backbone, device):
 class Muon(torch.optim.Optimizer):
     """
     Muon: MomentUm Orthogonalized by Newton-Schulz.
-    SOTA optimizer for matrix-structured parameters (linear weights).
+    Newton-Schulz optimizer for matrix-structured parameters (linear weights).
     References: Jordan Sitkin, Keller Jordan et al. (2024).
     """
     def __init__(self, params, lr=1e-3, momentum=0.9, ns_steps=5):

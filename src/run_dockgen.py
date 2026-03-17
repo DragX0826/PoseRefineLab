@@ -132,7 +132,7 @@ def run_dockgen_benchmark(args):
                 writer.close()
                 logger.info(f"  Saved native ligand to {native_path}")
 
-                # Optional: Run PoseBusters (ICLR standard)
+                # Optional: Run PoseBusters validation
                 if args.posebusters:
                     import subprocess
                     protein_path = f"{pdb_id}.pdb"

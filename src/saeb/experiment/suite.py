@@ -674,15 +674,15 @@ class SOCMTwist:
 
 # ═══════════════════════════════════════════════════════════════════════
 # v9.0 創新三：SelfRewardingParticleGibbs（替換 BeamDocking）
-# 理論：SR-SMC (Luo et al., arXiv Feb 2026 — 最新！)
-# 特色：training-free，自獎勵 = MMFF94，粒子吉布斯迭代
+# Theory: SR-SMC-inspired particle workflow
+# Characteristics: training-free, MMFF-guided, particle Gibbs updates
 # ═══════════════════════════════════════════════════════════════════════
 
 class SelfRewardingParticleGibbs:
     """
     Self-Rewarding Particle Gibbs (SRPG) for Molecular Docking.
 
-    Directly adapts SR-SMC (Luo et al. 2026):
+    Adapts an SR-SMC-style particle workflow:
     - Parallel chains = "interacting diffusion processes"
     - Self-reward = MMFF94 energy (no external labels needed)
     - Gibbs resampling: fix best particle as reference, resample others

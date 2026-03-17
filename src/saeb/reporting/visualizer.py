@@ -1,5 +1,5 @@
 """
-PublicationVisualizer — ICLR/NeurIPS grade figure generation for SAEB-Flow.
+PublicationVisualizer — figure generation helpers for SAEB-Flow.
 
 Produces the 6 core figures required for molecular docking papers:
   Fig 1: Success Rate Curve   (SR@threshold vs threshold)
@@ -66,7 +66,7 @@ class LogTrendInterpreter:
 # ── Main Visualizer ────────────────────────────────────────────────────────────
 
 class PublicationVisualizer:
-    """Generates ICLR/NeurIPS-grade figures for molecular docking benchmarks."""
+    """Generates benchmark figures for molecular docking experiments."""
 
     def __init__(self, output_dir="plots"):
         self.output_dir = output_dir

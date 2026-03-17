@@ -1,9 +1,0 @@
-INFO:VerifyPerturbation:Loading 1aq1...
-INFO:SAEB-Flow.utils.pdb_io:    [Data] Found dominant ligand STU with 35 atoms.
-INFO:SAEB-Flow.utils.pdb_io:    Successfully extracted ligand template (STU).
-INFO:VerifyPerturbation:Initial Best Perturbed RMSD: 1.89A
-INFO:VerifyPerturbation:Starting Refinement (16 clones, 200 steps)...
-INFO:SAEB-Flow.experiment.suite:  [Refine] Performing final MMFF94 polish on best candidates...
-INFO:VerifyPerturbation:Final Best Refined RMSD: 0.69A
-INFO:VerifyPerturbation:Improvement: 1.20A
-INFO:VerifyPerturbation:SUCCESS: Perturbation recovered to sub-1A.

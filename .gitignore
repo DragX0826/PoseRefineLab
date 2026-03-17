@@ -39,7 +39,6 @@ archive/
 cache/
 results/
 Final_Submission_Data/
-MaxFlow_ICLR_2026/
 quantum/qm_negative_result_package/
 quantum/outputs/
 *.log

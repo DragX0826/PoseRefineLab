@@ -6,7 +6,7 @@ import torch
 class SimulationConfig:
     """
     Central Configuration for SAEB-Flow Experiments.
-    Standardizes all hyperparameters for ICLR-grade benchmarking.
+    Standardizes all hyperparameters for reproducible benchmarking.
     """
     pdb_id: str
     target_name: str

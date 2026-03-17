@@ -25,7 +25,7 @@ def plot_success_rate_curve(all_results, filename="fig_sr_curve.pdf"):
             rates = [(rmsds < t).mean() * 100 for t in thresholds]
             plt.plot(thresholds, rates, label=m, linewidth=2)
             
-        plt.axvline(2.0, color='red', linestyle='--', alpha=0.5, label='SOTA (2.0A)')
+        plt.axvline(2.0, color='red', linestyle='--', alpha=0.5, label='2A reference')
         plt.xlabel("RMSD Threshold (A)")
         plt.ylabel("Success Rate (%)")
         plt.title("Success Rate Characteristics")
@@ -78,7 +78,7 @@ def generate_master_report(experiment_results, all_histories=None):
                 "RMSD": f"{res['vina_rmsd']:.2f}",
                 "Centr_D": "N/A",
                 "Energy": f"{res.get('vina_energy', 0.0):.2f}",
-                "Yield(%)": "SOTA",
+                "Yield(%)": "Baseline",
                 "AlignStep": "N/A",
                 "Top10%_E": "N/A",
                 "QED": "N/A",
