@@ -102,6 +102,19 @@ Quantum package:
 - `reports/quantum/report.md`
 - `reports/quantum/qm_rmsd_comparison.png`
 - `reports/quantum/qm_delta_vs_selected.png`
+- `reports/quantum/h2_vqe_scan.png`
+
+## Selected Figures
+
+### Docking: stability and aggregate benchmark view
+
+![Docking stability comparison](reports/docking/stability_comparison.png)
+
+![Docking benchmark summary](reports/docking/summary_metrics.png)
+
+### Quantum: H2 bond-length scan
+
+![H2 VQE bond-length scan](reports/quantum/h2_vqe_scan.png)
 
 ## Benchmark Snapshot
 

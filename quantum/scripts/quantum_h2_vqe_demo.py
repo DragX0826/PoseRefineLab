@@ -7,7 +7,8 @@ import numpy as np
 import pandas as pd
 from rdkit import Chem
 from rdkit.Chem import AllChem
-from qiskit.quantum_info import SparsePauliOp
+
+HARTREE_TO_KCAL_MOL = 627.509474
 
 
 def build_h2_mol(distance_angstrom: float) -> Chem.Mol:
@@ -33,8 +34,8 @@ def compute_uff_energy(distance_angstrom: float) -> float:
     return float(ff.CalcEnergy())
 
 
-def compute_vqe_energy(distance_angstrom: float, maxiter: int) -> tuple[float, float]:
-    from qiskit.primitives import StatevectorEstimator
+def compute_vqe_and_exact_energy(distance_angstrom: float, maxiter: int) -> tuple[float, float]:
+    from qiskit.primitives import Estimator
     from qiskit.circuit.library import TwoLocal
     from qiskit_algorithms import NumPyMinimumEigensolver, VQE
     from qiskit_algorithms.optimizers import SLSQP
@@ -69,7 +70,7 @@ def compute_vqe_energy(distance_angstrom: float, maxiter: int) -> tuple[float, f
     solver_vqe = GroundStateEigensolver(
         mapper,
         VQE(
-            estimator=StatevectorEstimator(),
+            estimator=Estimator(),
             ansatz=ansatz,
             optimizer=optimizer,
         ),
@@ -79,42 +80,31 @@ def compute_vqe_energy(distance_angstrom: float, maxiter: int) -> tuple[float, f
     return vqe_energy, exact_energy
 
 
-def compute_vqe_energy_fallback(maxiter: int) -> tuple[float, float, float]:
-    from qiskit.primitives import StatevectorEstimator
-    from qiskit.circuit.library import TwoLocal
-    from qiskit_algorithms import NumPyMinimumEigensolver, VQE
-    from qiskit_algorithms.optimizers import SLSQP
+def build_application_paragraph(df: pd.DataFrame) -> str:
+    best_idx = df["exact_energy_hartree"].idxmin()
+    best_row = df.loc[best_idx]
+    max_abs_err = float(df["abs_vqe_minus_exact_hartree"].max())
+    mean_abs_err = float(df["abs_vqe_minus_exact_hartree"].mean())
 
-    bond_length = 0.735
-    hamiltonian = SparsePauliOp.from_list(
-        [
-            ("II", -1.052373245772859),
-            ("IZ", 0.39793742484318045),
-            ("ZI", -0.39793742484318045),
-            ("ZZ", -0.01128010425623538),
-            ("XX", 0.18093119978423156),
-        ]
-    )
-    exact_solver = NumPyMinimumEigensolver()
-    exact_result = exact_solver.compute_minimum_eigenvalue(hamiltonian)
-    ansatz = TwoLocal(2, rotation_blocks=["ry", "rz"], entanglement_blocks="cz", reps=2)
-    vqe_solver = VQE(
-        estimator=StatevectorEstimator(),
-        ansatz=ansatz,
-        optimizer=SLSQP(maxiter=maxiter),
-    )
-    vqe_result = vqe_solver.compute_minimum_eigenvalue(hamiltonian)
     return (
-        bond_length,
-        float(np.real(vqe_result.eigenvalue)),
-        float(np.real(exact_result.eigenvalue)),
+        "為了更直接理解傳統力場與量子計算方法在能量評估上的差距，我用 Qiskit 對氫分子（H2）進行了 VQE 鍵長掃描實驗，"
+        "並與精確對角化（exact diagonalization）及 UFF 力場的結果並排比較。"
+        "實驗使用 Jordan-Wigner 映射、TwoLocal ansatz 與 SLSQP 最佳化，在 "
+        f"{df['bond_length_angstrom'].min():.1f}–{df['bond_length_angstrom'].max():.1f} Å 範圍內掃描 {len(df)} 個鍵長點。"
+        f"VQE 與精確解的最大誤差為 {max_abs_err:.2e} Hartree，平均誤差為 {mean_abs_err:.2e} Hartree；"
+        f"最低能量點出現在約 {best_row['bond_length_angstrom']:.3f} Å。"
+        "結果顯示，VQE 能重現小體系的量子力學基態能量曲線，而 UFF 雖能大致捕捉極小值附近的幾何趨勢，"
+        "但能量尺度與量子化學結果不同，無法直接作為量子化學能量的替代。"
+        "這個實驗讓我更具體理解了傳統力場在精細能量評估上的限制，也讓我更清楚未來量子化學方法在分子建模中的角色。"
     )
 
 
 def write_summary(df: pd.DataFrame, out_dir: Path) -> None:
-    best_idx = df["vqe_energy"].idxmin()
+    best_idx = df["exact_energy_hartree"].idxmin()
     best_row = df.loc[best_idx]
-    md = f"""# H2 VQE Demo
+    max_abs_err = float(df["abs_vqe_minus_exact_hartree"].max())
+    mean_abs_err = float(df["abs_vqe_minus_exact_hartree"].mean())
+    md = f"""# H2 VQE Scan
 
 This run compares hydrogen bond-length energy curves from:
 
@@ -122,110 +112,109 @@ This run compares hydrogen bond-length energy curves from:
 - Exact diagonalization on the same qubit Hamiltonian
 - RDKit UFF as a classical force-field baseline
 
-Best VQE point:
+Scan setup:
+
+- bond range: {df['bond_length_angstrom'].min():.3f}–{df['bond_length_angstrom'].max():.3f} Å
+- number of points: {len(df)}
+- optimizer: SLSQP
+
+Best exact-energy point:
 
 - bond_length_angstrom: {best_row["bond_length_angstrom"]:.3f}
-- vqe_energy_hartree: {best_row["vqe_energy"]:.8f}
-- exact_energy_hartree: {best_row["exact_energy"]:.8f}
-- uff_energy_kcal_mol: {best_row["uff_energy"]:.8f}
+- vqe_energy_hartree: {best_row["vqe_energy_hartree"]:.8f}
+- exact_energy_hartree: {best_row["exact_energy_hartree"]:.8f}
+- uff_energy_kcal_mol: {best_row["uff_energy_kcal_mol"]:.8f}
+
+VQE agreement with exact diagonalization:
+
+- max_abs_error_hartree: {max_abs_err:.6e}
+- mean_abs_error_hartree: {mean_abs_err:.6e}
 
 Interpretation:
 
 - VQE and exact diagonalization live on the same quantum chemistry scale (Hartree).
-- UFF is an empirical force field, so its absolute values are not directly comparable.
-- The useful comparison is the shape of the energy curve and where the minimum occurs.
+- UFF is an empirical force field, so its absolute values are not directly comparable to the quantum energies.
+- The useful comparison is that UFF captures only a rough geometric trend, while VQE reproduces the quantum ground-state curve itself.
 """
-    (out_dir / "README.md").write_text(md, encoding="utf-8")
+    (out_dir / "h2_vqe_scan.md").write_text(md, encoding="utf-8")
+    (out_dir / "application_paragraph.md").write_text(build_application_paragraph(df), encoding="utf-8")
+
+
+def plot_scan(df: pd.DataFrame, out_dir: Path) -> None:
+    fig, ax_left = plt.subplots(figsize=(8.8, 5.2), dpi=220)
+    ax_right = ax_left.twinx()
+
+    ax_left.plot(
+        df["bond_length_angstrom"],
+        df["vqe_energy_hartree"],
+        marker="o",
+        linewidth=2.0,
+        color="#1f77b4",
+        label="VQE (Hartree)",
+    )
+    ax_left.plot(
+        df["bond_length_angstrom"],
+        df["exact_energy_hartree"],
+        marker="s",
+        linewidth=2.0,
+        color="#ff7f0e",
+        label="Exact diagonalization (Hartree)",
+    )
+    ax_right.plot(
+        df["bond_length_angstrom"],
+        df["uff_energy_kcal_mol"],
+        marker="^",
+        linewidth=1.8,
+        color="#2ca02c",
+        label="UFF (kcal/mol)",
+    )
+
+    ax_left.set_xlabel("H-H bond length (Å)")
+    ax_left.set_ylabel("Quantum energy (Hartree)")
+    ax_right.set_ylabel("UFF energy (kcal/mol)")
+    ax_left.set_title("H2 bond-length scan: VQE vs exact diagonalization vs UFF")
+    ax_left.grid(alpha=0.25)
+
+    handles_left, labels_left = ax_left.get_legend_handles_labels()
+    handles_right, labels_right = ax_right.get_legend_handles_labels()
+    ax_left.legend(handles_left + handles_right, labels_left + labels_right, loc="best", frameon=False)
+
+    fig.tight_layout()
+    fig.savefig(out_dir / "h2_vqe_scan.png", bbox_inches="tight")
+    plt.close(fig)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run a small H2 VQE vs UFF comparison.")
-    parser.add_argument("--out_dir", type=Path, default=Path("results/quantum_h2_vqe"))
-    parser.add_argument("--points", type=int, default=9)
-    parser.add_argument("--min_bond", type=float, default=0.3)
-    parser.add_argument("--max_bond", type=float, default=2.5)
+    parser = argparse.ArgumentParser(description="Run an H2 VQE / exact / UFF bond scan.")
+    parser.add_argument("--out_dir", type=Path, default=Path("reports/quantum"))
+    parser.add_argument("--points", type=int, default=10)
+    parser.add_argument("--min_bond", type=float, default=0.4)
+    parser.add_argument("--max_bond", type=float, default=1.5)
     parser.add_argument("--maxiter", type=int, default=200)
     args = parser.parse_args()
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
     bond_lengths = np.linspace(args.min_bond, args.max_bond, args.points)
     rows = []
-    use_fallback = False
-    try:
-        import pyscf  # noqa: F401
-
-        for bond_length in bond_lengths:
-            print(f"[run] bond_length={bond_length:.3f} A", flush=True)
-            vqe_energy, exact_energy = compute_vqe_energy(float(bond_length), args.maxiter)
-            uff_energy = compute_uff_energy(float(bond_length))
-            rows.append(
-                {
-                    "bond_length_angstrom": float(bond_length),
-                    "vqe_energy": vqe_energy,
-                    "exact_energy": exact_energy,
-                    "uff_energy": uff_energy,
-                    "abs_vqe_minus_exact": abs(vqe_energy - exact_energy),
-                    "mode": "full_scan",
-                }
-            )
-    except Exception as exc:
-        use_fallback = True
-        bond_length, vqe_energy, exact_energy = compute_vqe_energy_fallback(args.maxiter)
-        print(f"[fallback] PySCF unavailable ({exc}). Using standard H2 tutorial Hamiltonian.", flush=True)
-        nearest_idx = int(np.argmin(np.abs(bond_lengths - bond_length)))
-        for local_bond in bond_lengths:
-            current_idx = len(rows)
-            is_quantum_point = current_idx == nearest_idx
-            rows.append(
-                {
-                    "bond_length_angstrom": float(local_bond),
-                    "vqe_energy": vqe_energy if is_quantum_point else np.nan,
-                    "exact_energy": exact_energy if is_quantum_point else np.nan,
-                    "uff_energy": compute_uff_energy(float(local_bond)),
-                    "abs_vqe_minus_exact": abs(vqe_energy - exact_energy) if is_quantum_point else np.nan,
-                    "mode": "fallback_single_point",
-                }
-            )
+    for bond_length in bond_lengths:
+        print(f"[run] bond_length={bond_length:.3f} Å", flush=True)
+        vqe_energy, exact_energy = compute_vqe_and_exact_energy(float(bond_length), args.maxiter)
+        uff_energy = compute_uff_energy(float(bond_length))
+        rows.append(
+            {
+                "bond_length_angstrom": float(bond_length),
+                "vqe_energy_hartree": vqe_energy,
+                "exact_energy_hartree": exact_energy,
+                "uff_energy_kcal_mol": uff_energy,
+                "abs_vqe_minus_exact_hartree": abs(vqe_energy - exact_energy),
+                "uff_energy_hartree_equiv": uff_energy / HARTREE_TO_KCAL_MOL,
+            }
+        )
 
     df = pd.DataFrame(rows)
-    df.to_csv(args.out_dir / "energy_scan.csv", index=False)
-
-    plt.figure(figsize=(8, 5))
-    valid_quantum = df["vqe_energy"].notna()
-    if valid_quantum.sum() > 1:
-        plt.plot(df["bond_length_angstrom"], df["vqe_energy"], marker="o", label="VQE (Hartree)")
-        plt.plot(df["bond_length_angstrom"], df["exact_energy"], marker="s", label="Exact (Hartree)")
-        plt.xlabel("H-H bond length (Angstrom)")
-        plt.ylabel("Energy (Hartree)")
-        plt.title("H2 energy curve from VQE")
-    else:
-        qrow = df[valid_quantum].iloc[0]
-        plt.bar(["VQE", "Exact"], [qrow["vqe_energy"], qrow["exact_energy"]], color=["tab:blue", "tab:orange"])
-        plt.ylabel("Energy (Hartree)")
-        plt.title(f"H2 single-point energy at {qrow['bond_length_angstrom']:.3f} A")
-    plt.legend() if valid_quantum.sum() > 1 else None
-    plt.tight_layout()
-    plt.savefig(args.out_dir / "h2_vqe_curve.png", dpi=200)
-    plt.close()
-
-    plt.figure(figsize=(8, 5))
-    plt.plot(df["bond_length_angstrom"], df["uff_energy"], marker="^", color="tab:red", label="UFF (kcal/mol)")
-    plt.xlabel("H-H bond length (Angstrom)")
-    plt.ylabel("Energy (kcal/mol)")
-    plt.title("H2 energy curve from UFF")
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(args.out_dir / "h2_uff_curve.png", dpi=200)
-    plt.close()
-
+    df.to_csv(args.out_dir / "h2_vqe_scan.csv", index=False)
+    plot_scan(df, args.out_dir)
     write_summary(df, args.out_dir)
-    if use_fallback:
-        note = (
-            "PySCF was unavailable on this machine, so the quantum result uses the standard "
-            "2-qubit H2 tutorial Hamiltonian at 0.735 Angstrom while UFF is still scanned over bond lengths.\n"
-        )
-        with (args.out_dir / "README.md").open("a", encoding="utf-8") as handle:
-            handle.write("\n" + note)
     print(f"[done] outputs written to {args.out_dir}", flush=True)
 
 

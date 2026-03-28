@@ -2,7 +2,7 @@
 
 This folder now serves two purposes:
 
-- legacy proof artifacts for the small local VQE demo
+- H2 VQE scan artifacts for the small local quantum demo
 - the current QM-rescoring workflow that plugs into the docking pipeline
 
 Contents:
@@ -12,7 +12,7 @@ Contents:
 - `scripts/run_xtb_rescore_wsl.ps1`
   Windows helper that forwards a candidate directory into WSL and runs `qm_rescore_xtb.py`.
 - `scripts/quantum_h2_vqe_demo.py`
-  Legacy local H2 VQE demo.
+  H2 VQE / exact / UFF bond-length scan used for the current quantum evidence artifact.
 - `scripts/generate_two_track_proof_pdf.py`
   Legacy one-page PDF generator for the old proof sheet.
 - `outputs/`
